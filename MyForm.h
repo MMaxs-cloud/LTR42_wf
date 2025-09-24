@@ -24,8 +24,8 @@ inline void LogEvent(const std::string& event) {
 		char timeBuffer[80];
 		strftime(timeBuffer, sizeof(timeBuffer), "%Y%m%d-%H%M%S", &ltm);
 
-		// Формируем имя файла
-		logFileName = "log_" + std::string(timeBuffer) + ".txt";
+		// Формируем имя файла в папке "data"
+		logFileName = "logs\\log_" + std::string(timeBuffer) + ".txt";
 	}
 
 	std::ofstream logFile(logFileName, std::ios_base::app);
@@ -45,6 +45,7 @@ inline void LogEvent(const std::string& event) {
 	logFile << "[" << timeBuffer << "." << std::setw(3) << std::setfill('0') << ms.count() << "] "
 		<< event << std::endl;
 }
+
 
 
 
@@ -964,19 +965,18 @@ private: System::Void buttonLoadCSV_Click(System::Object^ sender, System::EventA
 			return;
 		}
 
-		// Путь к папке и исходному CSV
-		std::string folder = "C:\\Users\\maxim\\source\\repos\\LTR42_wf";
+		// Папка data рядом с программой
 		std::string fileNameStr = msclr::interop::marshal_as<std::string>(fileNameInput);
+		std::string folder = "data";  // папка внутри директории программы
 		std::string fullPath = folder + "\\" + fileNameStr + ".csv";
 
 		// Читаем исходный CSV
 		std::ifstream file(fullPath);
 		if (!file.is_open()) {
-			MessageBox::Show("Файл не найден: " + textBox1->Text);
+			MessageBox::Show("Файл не найден: " + textBox1->Text + " в папке data");
 			return;
 		}
 
-		//std::vector<double> Ticks, Qvtp;
 		std::string line;
 		while (std::getline(file, line)) {
 			if (line.empty()) continue;
@@ -1009,13 +1009,13 @@ private: System::Void buttonLoadCSV_Click(System::Object^ sender, System::EventA
 			}
 		}
 
-		MessageBox::Show("Данные из CSV успешно загружены в TextBox!");
-
+		MessageBox::Show("Данные из CSV успешно загружены из папки data!");
 	}
 	catch (Exception^ ex) {
 		MessageBox::Show("Ошибка: " + ex->Message);
 	}
 }
+
 
 
 
@@ -1033,13 +1033,21 @@ private: System::Void buttonSaveCSV_Click(System::Object^ sender, System::EventA
 	try {
 		if (!Ticks->empty() && !Qvtp->empty()) {
 
-			// Создаем кривую на основе указателя powerToPosition
+			// Создаем кривую
 			powerToPosition->SetPoints(*Qvtp, *Ticks);
-			positionToPower->SetPoints( *Ticks, *Qvtp);
-			// Имя нового файла
-			String^ folder = "C:\\Users\\maxim\\source\\repos\\LTR42_wf";
+			positionToPower->SetPoints(*Ticks, *Qvtp);
+
+			// Папка data
+			String^ folder = "data";
+			// Файл в папке data
 			String^ outFileName = System::IO::Path::Combine(folder, "calibration_curve.csv");
 
+			// Проверим, существует ли папка "data"
+			if (!System::IO::Directory::Exists(folder)) {
+				System::IO::Directory::CreateDirectory(folder);
+			}
+
+			// Запись в файл
 			std::ofstream outFile(marshal_as<std::string>(outFileName));
 			if (!outFile.is_open()) {
 				MessageBox::Show("Не удалось создать файл: " + outFileName);
@@ -1051,8 +1059,8 @@ private: System::Void buttonSaveCSV_Click(System::Object^ sender, System::EventA
 			double maxTick = *std::max_element(Ticks->begin(), Ticks->end());
 
 			for (double x = 0; x <= maxTick; x += step) {
-				double y = (*positionToPower)(x); // вызов оператора () у объекта powerToPosition
-				outFile << x << ";" << y << "\n"; // LF для новой строки
+				double y = (*positionToPower)(x);
+				outFile << x << ";" << y << "\n";
 			}
 
 			outFile.close();
@@ -1066,6 +1074,7 @@ private: System::Void buttonSaveCSV_Click(System::Object^ sender, System::EventA
 		MessageBox::Show("Ошибка: " + ex->Message);
 	}
 }
+
 
 private: System::Void buttonLoadCycle_Click(System::Object^ sender, System::EventArgs^ e) {
 	
@@ -1088,15 +1097,20 @@ private: System::Void button2_Click_2(System::Object^ sender, System::EventArgs^
 			return;
 		}
 
-		// Папка и путь
-		std::string folder = "C:\\Users\\maxim\\source\\repos\\LTR42_wf";
+		// Папка data
+		std::string folder = "data";
 		std::string fileNameStr = msclr::interop::marshal_as<std::string>(fileNameInput);
 		std::string fullPath = folder + "\\" + fileNameStr + "_cycle.csv";
+
+		// Проверим, существует ли папка data
+		if (!System::IO::Directory::Exists("data")) {
+			System::IO::Directory::CreateDirectory("data");
+		}
 
 		// Открываем файл на запись
 		std::ofstream outFile(fullPath);
 		if (!outFile.is_open()) {
-			MessageBox::Show("Не удалось создать файл: " + textBox1->Text + "_cycle.csv");
+			MessageBox::Show("Не удалось создать файл: " + textBox1->Text + "_cycle.csv (папка data)");
 			return;
 		}
 
@@ -1114,9 +1128,6 @@ private: System::Void button2_Click_2(System::Object^ sender, System::EventArgs^
 			return;
 		}
 
-		// Создаём векторы для кривой
-		
-
 		// Записываем в CSV и заполняем векторы
 		for (int i = 0; i < minutesArr->Length; i++) {
 			if (String::IsNullOrWhiteSpace(minutesArr[i]) || String::IsNullOrWhiteSpace(PowerArr[i]))
@@ -1132,13 +1143,11 @@ private: System::Void button2_Click_2(System::Object^ sender, System::EventArgs^
 		}
 
 		outFile.close();
-		MessageBox::Show("Циклограмма успешно сохранена в файл: " + textBox1->Text + "_cycle.csv");
+		MessageBox::Show("Циклограмма успешно сохранена в файл (папка data): " + textBox1->Text + "_cycle.csv");
 
 		// --- Построение кривой ---
 		if (!MinutesVec->empty() && !PowerVec->empty()) {
-			// Инициализация кривой
 			//cycleCurve->SetPoints(*MinutesVec, *PowerVec);
-			//cycleCurve.SetPoints(MinutesVec, PowerVec); // или другой метод
 		}
 		if (!MinutesVec->empty()) {
 			maxTimeMs = MinutesVec->back(); // последняя минута в миллисекундах
@@ -1148,6 +1157,7 @@ private: System::Void button2_Click_2(System::Object^ sender, System::EventArgs^
 		MessageBox::Show("Ошибка: " + ex->Message);
 	}
 }
+
 
 private: System::Void textBox3_TextChanged(System::Object^ sender, System::EventArgs^ e) {
 }
@@ -1162,15 +1172,20 @@ private: System::Void button3_Click_1(System::Object^ sender, System::EventArgs^
 			return;
 		}
 
-		// Папка и полный путь
-		std::string folder = "C:\\Users\\maxim\\source\\repos\\LTR42_wf";
+		// Папка data и полный путь
+		std::string folder = "data";
 		std::string fileNameStr = msclr::interop::marshal_as<std::string>(fileNameInput);
 		std::string fullPath = folder + "\\" + fileNameStr + ".csv";
+
+		// Проверим, есть ли папка data
+		if (!System::IO::Directory::Exists("data")) {
+			System::IO::Directory::CreateDirectory("data");
+		}
 
 		// Читаем CSV
 		std::ifstream file(fullPath);
 		if (!file.is_open()) {
-			MessageBox::Show("Файл циклограммы не найден: " + textBoxCycleName->Text);
+			MessageBox::Show("Файл циклограммы не найден: " + textBoxCycleName->Text + " (папка data)");
 			return;
 		}
 
@@ -1210,13 +1225,13 @@ private: System::Void button3_Click_1(System::Object^ sender, System::EventArgs^
 			}
 		}
 
-		MessageBox::Show("Циклограмма успешно загружена!");
-
+		MessageBox::Show("Циклограмма успешно загружена из папки data!");
 	}
 	catch (Exception^ ex) {
 		MessageBox::Show("Ошибка: " + ex->Message);
 	}
 }
+
 private: System::Void buttonStartCycleChart_Click(System::Object^ sender, System::EventArgs^ e) {
 	// --- Сохраняем время запуска ---
 	if (MinutesVec->empty() || PowerVec->empty()) {
