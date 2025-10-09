@@ -38,7 +38,10 @@
     <ClInclude Include="header.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="enlog.h">
+    <ClInclude Include="utils\enlog.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\enlog_to_file.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

@@ -15,6 +15,20 @@ $Id: enlog.h 99 2005-10-28 07:51:41Z dv $
 #include <stdexcept>
 #include <iostream>
 
+namespace Shims {
+	template<class T>
+	inline std::basic_stringstream<char>& place_message_to_stream(std::basic_stringstream<char>& Stream, T const& Value) {
+		Stream << Value;
+		return Stream;
+	}
+
+	//если необходимо значени€ определенного типа выводить в stream как-то хитро
+	//необходиомо где-то в проекте объ€влить специализацию
+	//template<> inline
+	//std::basic_stringstream<char> Ext::Shims::place_message_to_stream(std::basic_stringstream<char> &Stream, MyType Value)
+	//{ //!TODO };
+}
+
 namespace rt {
 	namespace Private
 	{

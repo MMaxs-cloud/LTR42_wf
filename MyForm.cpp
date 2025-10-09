@@ -7,34 +7,33 @@
 
 #include <mutex>
 #include "header.h"
-#include "enlog.h"
+#include "utils/enlog.h"
 #include <functional>
+#include "utils/enlog_to_file.h"
 
 
 using namespace System;
 using namespace System::Windows::Forms;
 using namespace msclr::interop;
 
-void toLog(std::string const& msg, rt::LogLevel level) {
-    ENLOG(msg);
-}
-
-
 // глобальные переменные
+RammusLib::Log::CAppFileLog g_Log;
 std::mutex g_LogMutex;
 rt::Logger g_Logger;
 
-void handle_message(std::string const& s) {
-    rt::RTEngineLogger::write_to_log(s);
-    throw std::runtime_error(s);
+void toLog(std::string const& msg, rt::LogLevel level) {
+	// запись в лог файл, безопасно для многопоточности
+    g_Log.SendMessageToLog(level, msg.c_str());
 }
 
 void rt::RTEngineLogger::write_to_log(std::string const& str) {
+    // разруливаем мультипоточность
     std::lock_guard<std::mutex> lock(g_LogMutex);
     g_Logger.info(str);
 }
 
 rt::Logger::Logger() {
+    // инициализируем логгер, который будем использовать в макросе ENLOG
     init(toLog);
 }
 
@@ -56,6 +55,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 LTR42wf::MyForm::MyForm(void)
 {
     InitializeComponent();
+
+    ENLOG("test1");
+    ENLOG("test2")(1);
+    int a = 10;
+    ENLOG("test3")(a)("test4")(a);
+
 
     // Подписываем кнопку на обработчик
     this->buttonLoadCSV->Click += gcnew EventHandler(this, &MyForm::buttonLoadCSV_Click);
