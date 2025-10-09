@@ -11,8 +11,9 @@
 #include <msclr/marshal_cppstd.h>
 #include <sstream>
 #include <chrono>
+#include "header.h"
 
-inline void LogEvent(const std::string& event) {
+inline void Log1Event(const std::string& event) {
 	static std::ofstream logFile;
 	static bool initialized = false;
 
@@ -80,7 +81,8 @@ namespace LTR42wf {
 
 	protected:
 		virtual void OnFormClosed(FormClosedEventArgs^ e) override {
-			LogEvent("Form closed");
+			ENLOG("Form closed");
+
 			__super::OnFormClosed(e);
 		}
 		/// <summary>
@@ -624,12 +626,12 @@ private: System::Void label2_Click(System::Object^ sender, System::EventArgs^ e)
 private: System::Void textBox_input_Time_TextChanged(System::Object^ sender, System::EventArgs^ e) {
 }
 private: System::Void MyForm_Load(System::Object^ sender, System::EventArgs^ e) {
-	LogEvent("Form loaded");
+	ENLOG("Form loaded");
 }
 
 private: System::Void button_start_ltr_Click(System::Object^ sender, System::EventArgs^ e) {
 	this->textBox_res->Text = Convert::ToString(Startltr42());
-	LogEvent("Button clicked: Start LTR42");
+	ENLOG("Button clicked: Start LTR42");
 
 	// Открываем файл для чтения
 	std::ifstream inFile("position.txt");
@@ -637,7 +639,7 @@ private: System::Void button_start_ltr_Click(System::Object^ sender, System::Eve
 	std::vector<std::string> lines;
 
 	if (inFile.is_open()) {
-		LogEvent("Reading from file: position.txt");
+		ENLOG("Reading from file: position.txt");
 		while (std::getline(inFile, line)) {
 			lines.push_back(line); // Сохраняем каждую строку в вектор
 		}
@@ -671,7 +673,7 @@ private: System::Void button3_Click(System::Object^ sender, System::EventArgs^ e
 	   int zero_count = 0;
 	   int minus = 0;
 private: System::Void button4_Click(System::Object^ sender, System::EventArgs^ e) {
-	LogEvent("Button clicked: Experiment started");
+	ENLOG("Button clicked: Experiment started");
 	int tick; // это нужное положение в пространстве
 	int time;
 	int tick_counter;
@@ -841,7 +843,7 @@ for (int i = 1; i <= 50; i++) {
 
 
 	   void zero_timer() {
-		   LogEvent("Zero timer started");
+		   ENLOG("Zero timer started");
 		   // запускает поток
 
 		   if (steps <= 0) {
@@ -877,7 +879,7 @@ for (int i = 1; i <= 50; i++) {
 					   cur += ticker;
 				   }
 				  
-				   //LogEvent("Experiment completed");
+				   //ENLOG("Experiment completed");
 				   stop_rotate();
 				   //out.close();
 
@@ -885,18 +887,18 @@ for (int i = 1; i <= 50; i++) {
 		   }
 		   
 		   if (steps == 0) {
-			   LogEvent("Timer stopped");
+			   ENLOG("Timer stopped");
 		   }
 		   /*if (!thisThread || !thisThread->IsAlive) {
 			   thisThread = gcnew Thread(gcnew ThreadStart(this, &MyForm::Thread_Start));
 			   thisThread->Start();
 		   }*/
 		   current_position = cur;
-		   LogEvent("Cur_pos:" + std::to_string(cur));
+		   ENLOG("Cur_pos: ")(cur);
 }
 
 private: System::Void timer1_Tick(System::Object^ sender, System::EventArgs^ e) { 
-	LogEvent("Timer tick triggered");
+	ENLOG("Timer tick triggered");
 	timer1->Interval = time_interval; // запускает поток
 
 	std::ofstream out("position.txt", std::ios::app);
@@ -928,13 +930,13 @@ private: System::Void timer1_Tick(System::Object^ sender, System::EventArgs^ e) 
 			cur += 5;
 		}
 		timer1->Stop();
-		LogEvent("Experiment completed");
+		ENLOG("Experiment completed");
 		stop_rotate();
 		out.close();
 		
 	}
 	if (steps == 0) {
-		LogEvent("Timer stopped after experiment completion");
+		ENLOG("Timer stopped after experiment completion");
 	}
 	/*if (!thisThread || !thisThread->IsAlive) {
 		thisThread = gcnew Thread(gcnew ThreadStart(this, &MyForm::Thread_Start));
@@ -1298,7 +1300,7 @@ private: System::Void buttonStartCycleChart_Click(System::Object^ sender, System
 
 	// --- Логируем старт ---
 	fix_power = (*positionToPower)(current_position); // мощность от времени
-	LogEvent("Cycle start detected (position aligned)");
+	ENLOG("Cycle start detected (position aligned)");
 
 	// --- Создаём таймер (если ещё нет) ---
 	if (this->cycleTimer == nullptr) {
@@ -1356,7 +1358,7 @@ private: System::Void OnCycleTimerTick(System::Object^ sender, System::EventArgs
 		// финальное сохранение
 		SavePositionToFile();
 
-		LogEvent("Cycle finished. Timer stopped.");
+		ENLOG("Cycle finished. Timer stopped.");
 		return;
 	}
 
@@ -1424,7 +1426,7 @@ private: System::Void OnCycleTimerTick(System::Object^ sender, System::EventArgs
 		", Current pos: " + current_position.ToString() +
 		", Current P = " + fix_power.ToString() +
 		", Interpolated P = " + countPower.ToString("F2");
-	LogEvent(msclr::interop::marshal_as<std::string>(msg));
+	ENLOG(msclr::interop::marshal_as<std::string>(msg));
 }
 
 

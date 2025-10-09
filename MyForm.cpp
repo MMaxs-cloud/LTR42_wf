@@ -59,7 +59,7 @@ LTR42wf::MyForm::MyForm(void)
     ENLOG("test1");
     ENLOG("test2")(1);
     int a = 10;
-    ENLOG("test3")(a)("test4")(a);
+    ENLOG("test3")(a)("русский")(a);
 
 
     // Подписываем кнопку на обработчик
