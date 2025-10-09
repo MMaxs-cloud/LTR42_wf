@@ -7,7 +7,6 @@
 
 #include <mutex>
 #include "header.h"
-#include "utils/enlog.h"
 #include <functional>
 #include "utils/enlog_to_file.h"
 
@@ -35,6 +34,11 @@ void rt::RTEngineLogger::write_to_log(std::string const& str) {
 rt::Logger::Logger() {
     // инициализируем логгер, который будем использовать в макросе ENLOG
     init(toLog);
+}
+
+void LogEvent(const std::string& event) {
+    RammusLib::Log::CAppFileLog logger;
+    logger.SendMessageToLog(0, event);
 }
 
 

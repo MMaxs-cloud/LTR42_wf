@@ -1,9 +1,13 @@
+#pragma once
+
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <iomanip>
 #include <chrono>
 #include <ctime>
+
+#pragma once
 
 namespace RammusLib {
 
@@ -91,3 +95,4 @@ namespace RammusLib {
     }; //Log
 
 };//RammusLib
+

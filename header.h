@@ -1,5 +1,6 @@
 #include <string>
 #include <functional>
+#include "utils/enlog.h"
 
 #pragma once
 

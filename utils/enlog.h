@@ -5,9 +5,7 @@ Copyright 2005 by Victor Derevyanko, wingspan@yandex.ru
 $Id: enlog.h 99 2005-10-28 07:51:41Z dv $
 */
 
-
-#ifndef ENLOG_H
-#define ENLOG_H_
+#pragma once
 
 #include <windows.h>
 #include <string>
@@ -131,5 +129,3 @@ inline Enlogger<T&, Level, P, R> Make_Enlogger(Level const& level, T& t)
 /************************************************************************/
 
 }; //Ext
-#endif
-
