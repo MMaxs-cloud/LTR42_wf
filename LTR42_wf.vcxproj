@@ -132,6 +132,8 @@
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="enlog.h" />
+    <ClInclude Include="header.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="MyForm.h">
       <FileType>CppForm</FileType>

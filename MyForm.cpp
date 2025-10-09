@@ -5,9 +5,40 @@
 #include <msclr/marshal_cppstd.h>
 #include "LinearInterpolation.h"
 
+#include <mutex>
+#include "header.h"
+#include "enlog.h"
+#include <functional>
+
+
 using namespace System;
 using namespace System::Windows::Forms;
 using namespace msclr::interop;
+
+void toLog(std::string const& msg, rt::LogLevel level) {
+    ENLOG(msg);
+}
+
+
+// глобальные переменные
+std::mutex g_LogMutex;
+rt::Logger g_Logger;
+
+void handle_message(std::string const& s) {
+    rt::RTEngineLogger::write_to_log(s);
+    throw std::runtime_error(s);
+}
+
+void rt::RTEngineLogger::write_to_log(std::string const& str) {
+    std::lock_guard<std::mutex> lock(g_LogMutex);
+    g_Logger.info(str);
+}
+
+rt::Logger::Logger() {
+    init(toLog);
+}
+
+
 
 [STAThreadAttribute] // обязательно для OpenFileDialog
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)

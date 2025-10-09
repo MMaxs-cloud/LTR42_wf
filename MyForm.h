@@ -13,9 +13,16 @@
 #include <chrono>
 
 inline void LogEvent(const std::string& event) {
-	static std::string logFileName;
-	if (logFileName.empty()) {
-		// Определяем дату и время старта
+	static std::ofstream logFile;
+	static bool initialized = false;
+
+	if (!initialized) {
+		// Создаём папку logs при необходимости
+		if (!System::IO::Directory::Exists("logs")) {
+			System::IO::Directory::CreateDirectory("logs");
+		}
+
+		// Имя файла
 		auto now = std::chrono::system_clock::now();
 		std::time_t t = std::chrono::system_clock::to_time_t(now);
 		tm ltm;
@@ -23,28 +30,23 @@ inline void LogEvent(const std::string& event) {
 
 		char timeBuffer[80];
 		strftime(timeBuffer, sizeof(timeBuffer), "%Y%m%d-%H%M%S", &ltm);
+		std::string logFileName = "logs\\log_" + std::string(timeBuffer) + ".txt";
 
-		// Формируем имя файла в папке "data"
-		logFileName = "logs\\log_" + std::string(timeBuffer) + ".txt";
+		logFile.open(logFileName, std::ios::app);
+		initialized = true;
 	}
 
-	std::ofstream logFile(logFileName, std::ios_base::app);
 	if (!logFile.is_open()) return;
 
-	// Получаем текущее время с миллисекундами
+	// Мгновенная запись (без сложного форматирования времени)
 	auto now = std::chrono::system_clock::now();
-	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
-	std::time_t t = std::chrono::system_clock::to_time_t(now);
-	tm ltm;
-	localtime_s(&ltm, &t);
-
-	char timeBuffer[80];
-	strftime(timeBuffer, sizeof(timeBuffer), "%Y%m%d-%H%M%S", &ltm);
-
-	logFile << "[" << timeBuffer << "." << std::setw(3) << std::setfill('0') << ms.count() << "] "
-		<< event << std::endl;
+	logFile << "[" << ms << "] " << event << "\n";
+	// ⚠️ flush можно убрать для скорости, если не нужно мгновенное сохранение:
+	// logFile.flush();
 }
+
 
 
 
@@ -845,7 +847,7 @@ for (int i = 1; i <= 50; i++) {
 		   if (steps <= 0) {
 			   return;
 		   }
-		   std::ofstream out("position.txt", std::ios::app);
+		  // std::ofstream out("position.txt", std::ios::app);
 		   int cur = current_position;
 		   int step = steps;
 		   int completed_steps = 0;
@@ -860,10 +862,10 @@ for (int i = 1; i <= 50; i++) {
 					   cur += ticker;
 				   }
 				   completed_steps++;
-				   if (out.is_open()) {
+				  /* if (out.is_open()) {
 					   this->TextBox_current_position->Text = Convert::ToString(cur);
 					   out << cur << "\n"; // Записываем значение current_position в файл с новой строки
-				   }
+				   }*/
 
 			   }
 			   else
@@ -875,22 +877,22 @@ for (int i = 1; i <= 50; i++) {
 					   cur += ticker;
 				   }
 				  
-				   LogEvent("Experiment completed");
+				   //LogEvent("Experiment completed");
 				   stop_rotate();
-				   out.close();
+				   //out.close();
 
 			   }
 		   }
 		   
 		   if (steps == 0) {
-			   LogEvent("Timer stopped after experiment completion");
+			   LogEvent("Timer stopped");
 		   }
 		   /*if (!thisThread || !thisThread->IsAlive) {
 			   thisThread = gcnew Thread(gcnew ThreadStart(this, &MyForm::Thread_Start));
 			   thisThread->Start();
 		   }*/
 		   current_position = cur;
-
+		   LogEvent("Cur_pos:" + std::to_string(cur));
 }
 
 private: System::Void timer1_Tick(System::Object^ sender, System::EventArgs^ e) { 
