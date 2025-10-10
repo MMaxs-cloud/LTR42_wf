@@ -4,7 +4,7 @@
 #include "Logger.h"
 #include <fstream>
 #include <string>
-
+#include "header.h"
 using namespace std;
 static TLTR42 ltr42;
 
@@ -14,26 +14,26 @@ static int current_position = 0;
 static int Startltr42() {
     int res;
     const CHAR crate = 0;
-    LogEvent("Calling Startltr42: Initializing LTR42 device");
+    ENLOG("Calling Startltr42: Initializing LTR42 device");
     res = LTR42_Init(&ltr42);
     if (res == 0) {
-        LogEvent("LTR42_Init succeeded. Opening device...");
+        ENLOG("LTR42_Init succeeded. Opening device...");
         res = LTR42_Open(&ltr42, (int)0, (WORD)0, &crate, (INT)5);
         if (res == 0) {
             ltr42.Marks.StartMark_Mode = 0;
-            LogEvent("Configuring LTR42 device...");
+            ENLOG("Configuring LTR42 device...");
             res = LTR42_Config(&ltr42);
             if (res == 0)
-                LogEvent("LTR42 configuration succeeded.");
+                ENLOG("LTR42 configuration succeeded.");
             else
-                LogEvent("LTR42_Config failed with error code: " + std::to_string(res));
+                ENLOG("LTR42_Config failed with error code: ")(res);
         }
         else {
-            LogEvent("LTR42_Open failed with error code: " + std::to_string(res));
+            ENLOG("LTR42_Open failed with error code: ")(res);
         }
     }
     else {
-        LogEvent("LTR42_Init failed with error code: " + std::to_string(res));
+        ENLOG("LTR42_Init failed with error code: ")(res);
     }
 
     return res;
@@ -41,17 +41,18 @@ static int Startltr42() {
 
 static void startandwrite(WORD Output) {
     int res;
-    std::string logMsg = "Writing to port: 0x" + std::to_string(Output);
-   // LogEvent(logMsg);
+    //std::string logMsg = "Writing to port: 0x" + std::to_string(Output);
+   // ENLOG(logMsg);
     res = LTR42_WritePort(&ltr42, Output);
-    if (res != 0)
-        LogEvent("LTR42_WritePort failed with error code: " + std::to_string(res));
+   /* if (res != 0)
+        ENLOG("LTR42_WritePort failed with error code: ")(res);*/
 }
 
 
 // Универсальная функция вращения на 1 шаг
 static void rotate(int minus) {
     startandwrite(0 + 4096 + minus + 16384);
+    //Sleep(10);
     startandwrite(0 + 4096);
 
     /*if (minus == 8192) {
@@ -60,22 +61,22 @@ static void rotate(int minus) {
     else if (minus == 0) {
         current_position -= 25;
     }*/
-    LogEvent("Rotation completed. Current position: " + std::to_string(current_position));
+    //ENLOG("Rotation completed. Current position: ")(current_position);
 }
 
 
 static void stop_rotate() {
-    LogEvent("Stopping rotation...");
+    ENLOG("Stopping rotation...");
     startandwrite(32768);
 }
 
 // Возврат в ноль
 // Возврат в ноль
 static void rotate_to_zero() {
-    LogEvent("Starting rotation to zero...");
+    ENLOG("Starting rotation to zero...");
 
     // Цикл для перехода в 0
-    for (int i = 0; i < 60; i++) {
+    for (int i = 0; i < 100; i++) {
         startandwrite(0 + 4096 + 16384);
         startandwrite(0 + 4096);
     }
@@ -86,9 +87,9 @@ static void rotate_to_zero() {
     // Записываем новое значение в файл
     std::ofstream out("position.txt", std::ios::app);
     if (out.is_open()) {
-        LogEvent("Writing to file: position.txt");
+        ENLOG("Writing to file: position.txt");
         out << current_position << "\n"; // Теперь пишем глобальное значение
     }
 
-    LogEvent("Position reset to 0 completed");
+    ENLOG("Position reset to 0 completed");
 }

@@ -674,7 +674,7 @@ private: System::Void button3_Click(System::Object^ sender, System::EventArgs^ e
 	   int minus = 0;
 private: System::Void button4_Click(System::Object^ sender, System::EventArgs^ e) {
 	ENLOG("Button clicked: Experiment started");
-	int tick; // это нужное положение в пространстве
+	int tick; // это нужное положение жалюзи
 	int time;
 	int tick_counter;
 	int cur;
@@ -728,13 +728,27 @@ private: System::Void button4_Click(System::Object^ sender, System::EventArgs^ e
 
 	int total_steps = tick_counter / ticker; // общее количество шагов
 	int completed_steps = 0; // количество завершенных шагов
-	steps = total_steps;
+	//steps = total_steps;
 
 	
-	
+	for (int i = 0; i < total_steps; i++) {
+
+
+		rotate(minus);
+
+		if (minus == 0) {
+			cur -= 25;
+		}
+		else {
+			cur += 25;
+		}
+		completed_steps++;
+	}
+	current_position = cur;
+	ENLOG(cur);
 	//System::Diagnostics::Stopwatch^ stopwatch = gcnew System::Diagnostics::Stopwatch();
 	//stopwatch->Start();
-	int wait_time = 0;
+	/*int wait_time = 0;
 	if (time == 0) {
 		interval = 0;
 	}
@@ -752,7 +766,7 @@ private: System::Void button4_Click(System::Object^ sender, System::EventArgs^ e
 		zero_timer();
 	}
 
-	
+	*/
 	
 
 
