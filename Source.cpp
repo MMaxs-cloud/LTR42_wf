@@ -18,7 +18,7 @@ static int Startltr42() {
     res = LTR42_Init(&ltr42);
     if (res == 0) {
         ENLOG("LTR42_Init succeeded. Opening device...");
-        res = LTR42_Open(&ltr42, (int)0, (WORD)0, &crate, (INT)5);
+        res = LTR42_Open(&ltr42, (int)0, (WORD)0, &crate, (INT)4);
         if (res == 0) {
             ltr42.Marks.StartMark_Mode = 0;
             ENLOG("Configuring LTR42 device...");
@@ -44,6 +44,7 @@ static void startandwrite(WORD Output) {
     //std::string logMsg = "Writing to port: 0x" + std::to_string(Output);
    // ENLOG(logMsg);
     res = LTR42_WritePort(&ltr42, Output);
+    ENLOG("Output")(Output);
    /* if (res != 0)
         ENLOG("LTR42_WritePort failed with error code: ")(res);*/
 }
@@ -52,8 +53,8 @@ static void startandwrite(WORD Output) {
 // Универсальная функция вращения на 1 шаг
 static void rotate(int minus) {
     startandwrite(0 + 4096 + minus + 16384);
-    //Sleep(10);
-    startandwrite(0 + 4096);
+    Sleep(10);
+    startandwrite(0 + 4096 + minus);
 
     /*if (minus == 8192) {
         current_position += 25;
@@ -80,16 +81,18 @@ static void rotate_to_zero() {
         startandwrite(0 + 4096 + 16384);
         startandwrite(0 + 4096);
     }
+    //stop_rotate;
+    startandwrite(32768);
 
     // Сбрасываем глобальное положение
     current_position = 0;
 
     // Записываем новое значение в файл
-    std::ofstream out("position.txt", std::ios::app);
+    /*std::ofstream out("position.txt", std::ios::app);
     if (out.is_open()) {
         ENLOG("Writing to file: position.txt");
         out << current_position << "\n"; // Теперь пишем глобальное значение
-    }
+    }*/
 
     ENLOG("Position reset to 0 completed");
 }

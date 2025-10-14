@@ -645,10 +645,10 @@ private: System::Void button_start_ltr_Click(System::Object^ sender, System::Eve
 		}
 		inFile.close();
 
-		if (!lines.empty()) {
+		/*if (!lines.empty()) {
 			current_position = std::stoi(lines.back()); // Берем последнюю строку
 			
-		}
+		}*/
 	}
 	
 
@@ -680,22 +680,11 @@ private: System::Void button4_Click(System::Object^ sender, System::EventArgs^ e
 	int cur;
 	int interval; // промежуток между сериями тиков
 	// Открываем файл для чтения
-	std::ifstream inFile("position.txt");
-	std::string line;
-	std::vector<std::string> lines;
+	
 
-	if (inFile.is_open()) {
-		while (std::getline(inFile, line)) {
-			lines.push_back(line); // Сохраняем каждую строку в вектор
-		}
-		inFile.close();
-
-		if (!lines.empty()) {
-			cur = std::stoi(lines.back()); // Берем последнюю строку
-
-		}
-	}
-	current_position = cur;
+	cur = current_position;
+	
+	
 
 	this->TextBox_current_position->Text = Convert::ToString(cur);
 	
@@ -746,6 +735,7 @@ private: System::Void button4_Click(System::Object^ sender, System::EventArgs^ e
 	}
 	current_position = cur;
 	ENLOG(cur);
+	this->TextBox_current_position->Text = Convert::ToString(cur);
 	//System::Diagnostics::Stopwatch^ stopwatch = gcnew System::Diagnostics::Stopwatch();
 	//stopwatch->Start();
 	/*int wait_time = 0;
@@ -844,6 +834,8 @@ private: System::Void button2_Click_1(System::Object^ sender, System::EventArgs^
 }
 private: System::Void button1_Click_2(System::Object^ sender, System::EventArgs^ e) {
 	rotate_to_zero();
+	int cur = current_position;
+	this->TextBox_current_position->Text = Convert::ToString(cur);
 }
 
 private: void DoWork(int i) {
@@ -907,7 +899,7 @@ for (int i = 1; i <= 50; i++) {
 			   thisThread = gcnew Thread(gcnew ThreadStart(this, &MyForm::Thread_Start));
 			   thisThread->Start();
 		   }*/
-		   current_position = cur;
+		   current_position = 0;
 		   ENLOG("Cur_pos: ")(cur);
 }
 
@@ -1334,7 +1326,7 @@ private: System::Void buttonStartCycleChart_Click(System::Object^ sender, System
 
 
 	   // === Реализации функций ===
-	   void LoadPositionFromFile() {
+	   /**/void LoadPositionFromFile() {
 		   try {
 			   std::ifstream in("position.txt");
 			   if (in.is_open()) {
