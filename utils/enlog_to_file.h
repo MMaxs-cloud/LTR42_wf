@@ -40,7 +40,7 @@ namespace RammusLib {
                 char timebuf[32];
                 std::strftime(timebuf, sizeof(timebuf), "%y%m%d-%H%M%S", &tm);
 
-                std::string bak_filename = log_filename + ".bak." + timebuf;
+                std::string bak_filename = log_filename + "." + timebuf; // здесь .bak был
 
                 if (fs::exists(log_filename)) {
                     if (fs::exists(bak_filename)) fs::remove(bak_filename);

@@ -94,6 +94,13 @@ namespace LTR42wf {
 	protected:
 	private: System::Windows::Forms::TextBox^ textBox_res;
 	private: System::Windows::Forms::Label^ label1;
+	private: System::Windows::Forms::Button^ button2;
+	private: System::Windows::Forms::Button^ button3;
+	private: System::Windows::Forms::Button^ button5;
+	private: System::Windows::Forms::Button^ button6;
+	private: System::Windows::Forms::TextBox^ textBox2;
+	private: System::Windows::Forms::TextBox^ textBoxStartTime;
+	private: System::Windows::Forms::ContextMenuStrip^ contextMenuStrip1;
 	private: System::Windows::Forms::GroupBox^ groupBox2;
 	//Thread^ thisThread, ^ thisThread2;
 
@@ -124,6 +131,8 @@ namespace LTR42wf {
 	private:
 		System::Windows::Forms::Timer^ cycleTimer;
 		DateTime startTime;
+		System::Windows::Forms::Timer^ startDelayTimer;
+		DateTime plannedStartTime;
 
 	private: System::Windows::Forms::GroupBox^ groupBox3;
 	private: System::Windows::Forms::Button^ buttonLoadCSV;
@@ -216,6 +225,13 @@ namespace LTR42wf {
 			this->label2 = (gcnew System::Windows::Forms::Label());
 			this->textBox1 = (gcnew System::Windows::Forms::TextBox());
 			this->buttonLoadCSV = (gcnew System::Windows::Forms::Button());
+			this->button2 = (gcnew System::Windows::Forms::Button());
+			this->button3 = (gcnew System::Windows::Forms::Button());
+			this->button5 = (gcnew System::Windows::Forms::Button());
+			this->button6 = (gcnew System::Windows::Forms::Button());
+			this->textBox2 = (gcnew System::Windows::Forms::TextBox());
+			this->textBoxStartTime = (gcnew System::Windows::Forms::TextBox());
+			this->contextMenuStrip1 = (gcnew System::Windows::Forms::ContextMenuStrip(this->components));
 			this->groupBox1->SuspendLayout();
 			this->groupBox2->SuspendLayout();
 			this->groupBox3->SuspendLayout();
@@ -305,9 +321,9 @@ namespace LTR42wf {
 			this->label3->AutoSize = true;
 			this->label3->Location = System::Drawing::Point(185, 80);
 			this->label3->Name = L"label3";
-			this->label3->Size = System::Drawing::Size(125, 13);
+			this->label3->Size = System::Drawing::Size(122, 13);
 			this->label3->TabIndex = 11;
-			this->label3->Text = L"1450 соответствует 60 ";
+			this->label3->Text = L"1425 тиков максимум ";
 			this->label3->Click += gcnew System::EventHandler(this, &MyForm::label3_Click);
 			// 
 			// textBox_angle_ex
@@ -372,6 +388,7 @@ namespace LTR42wf {
 			// 
 			// groupBox3
 			// 
+			this->groupBox3->Controls->Add(this->textBoxStartTime);
 			this->groupBox3->Controls->Add(this->label13);
 			this->groupBox3->Controls->Add(this->label12);
 			this->groupBox3->Controls->Add(this->label11);
@@ -526,7 +543,7 @@ namespace LTR42wf {
 			this->textBoxCycleName->Name = L"textBoxCycleName";
 			this->textBoxCycleName->Size = System::Drawing::Size(100, 20);
 			this->textBoxCycleName->TabIndex = 7;
-			this->textBoxCycleName->Text = L"short_cycle";
+			this->textBoxCycleName->Text = L"CD2E2R3H2";
 			this->textBoxCycleName->TextChanged += gcnew System::EventHandler(this, &MyForm::textBox4_TextChanged);
 			// 
 			// buttonLoadCycle
@@ -562,6 +579,7 @@ namespace LTR42wf {
 			this->textBox_Ticks->Name = L"textBox_Ticks";
 			this->textBox_Ticks->Size = System::Drawing::Size(584, 20);
 			this->textBox_Ticks->TabIndex = 3;
+			this->textBox_Ticks->TextChanged += gcnew System::EventHandler(this, &MyForm::textBox_Ticks_TextChanged);
 			// 
 			// label2
 			// 
@@ -579,7 +597,7 @@ namespace LTR42wf {
 			this->textBox1->Name = L"textBox1";
 			this->textBox1->Size = System::Drawing::Size(100, 20);
 			this->textBox1->TabIndex = 1;
-			this->textBox1->Text = L"forpowerToPosition";
+			this->textBox1->Text = L"20260316_ticks-power";
 			this->textBox1->TextChanged += gcnew System::EventHandler(this, &MyForm::textBox1_TextChanged_1);
 			// 
 			// buttonLoadCSV
@@ -592,11 +610,75 @@ namespace LTR42wf {
 			this->buttonLoadCSV->UseVisualStyleBackColor = true;
 			this->buttonLoadCSV->Click += gcnew System::EventHandler(this, &MyForm::buttonLoadCSV_Click);
 			// 
+			// button2
+			// 
+			this->button2->Location = System::Drawing::Point(879, 90);
+			this->button2->Name = L"button2";
+			this->button2->Size = System::Drawing::Size(75, 23);
+			this->button2->TabIndex = 3;
+			this->button2->Text = L"Вкл Альфа";
+			this->button2->UseVisualStyleBackColor = true;
+			this->button2->Click += gcnew System::EventHandler(this, &MyForm::button2_Click_3);
+			// 
+			// button3
+			// 
+			this->button3->Location = System::Drawing::Point(879, 129);
+			this->button3->Name = L"button3";
+			this->button3->Size = System::Drawing::Size(75, 23);
+			this->button3->TabIndex = 4;
+			this->button3->Text = L"Выкл Альфа";
+			this->button3->UseVisualStyleBackColor = true;
+			this->button3->Click += gcnew System::EventHandler(this, &MyForm::button3_Click_2);
+			// 
+			// button5
+			// 
+			this->button5->Location = System::Drawing::Point(879, 171);
+			this->button5->Name = L"button5";
+			this->button5->Size = System::Drawing::Size(75, 23);
+			this->button5->TabIndex = 5;
+			this->button5->Text = L"Вкл Бета";
+			this->button5->UseVisualStyleBackColor = true;
+			this->button5->Click += gcnew System::EventHandler(this, &MyForm::button5_Click);
+			// 
+			// button6
+			// 
+			this->button6->Location = System::Drawing::Point(879, 210);
+			this->button6->Name = L"button6";
+			this->button6->Size = System::Drawing::Size(75, 23);
+			this->button6->TabIndex = 6;
+			this->button6->Text = L"Выкл Бета";
+			this->button6->UseVisualStyleBackColor = true;
+			this->button6->Click += gcnew System::EventHandler(this, &MyForm::button6_Click);
+			// 
+			// textBox2
+			// 
+			this->textBox2->Location = System::Drawing::Point(879, 64);
+			this->textBox2->Name = L"textBox2";
+			this->textBox2->Size = System::Drawing::Size(100, 20);
+			this->textBox2->TabIndex = 7;
+			// 
+			// textBoxStartTime
+			// 
+			this->textBoxStartTime->Location = System::Drawing::Point(18, 284);
+			this->textBoxStartTime->Name = L"textBoxStartTime";
+			this->textBoxStartTime->Size = System::Drawing::Size(125, 20);
+			this->textBoxStartTime->TabIndex = 21;
+			// 
+			// contextMenuStrip1
+			// 
+			this->contextMenuStrip1->Name = L"contextMenuStrip1";
+			this->contextMenuStrip1->Size = System::Drawing::Size(61, 4);
+			// 
 			// MyForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(955, 770);
+			this->ClientSize = System::Drawing::Size(1102, 770);
+			this->Controls->Add(this->textBox2);
+			this->Controls->Add(this->button6);
+			this->Controls->Add(this->button5);
+			this->Controls->Add(this->button3);
+			this->Controls->Add(this->button2);
 			this->Controls->Add(this->groupBox3);
 			this->Controls->Add(this->groupBox2);
 			this->Controls->Add(this->groupBox1);
@@ -610,6 +692,7 @@ namespace LTR42wf {
 			this->groupBox3->ResumeLayout(false);
 			this->groupBox3->PerformLayout();
 			this->ResumeLayout(false);
+			this->PerformLayout();
 
 		}
 #pragma endregion
@@ -650,7 +733,8 @@ private: System::Void button_start_ltr_Click(System::Object^ sender, System::Eve
 			
 		}*/
 	}
-	
+	startandwrite(64);
+	ENLOG("BETA ON");
 
 	this->TextBox_current_position->Text = Convert::ToString(current_position); 
 
@@ -960,35 +1044,36 @@ private:
 	std::vector<double>* Qvtp;
 	std::vector<double>* MinutesVec;
 	std::vector<double>* PowerVec;
-
+	std::vector<double>* HeaterAlphaTime;
+	std::vector<double>* HeaterBetaTime;
+	std::vector<bool>* HeaterAlphaState; 
+	std::vector<bool>* HeaterBetaState;
 	LinearCalibration* cycleCurve;
 
 private: System::Void buttonLoadCSV_Click(System::Object^ sender, System::EventArgs^ e) {
 	try {
-		Ticks->clear();
-		Qvtp->clear();
+		// --- Чтение первого файла: Ticks и Qvtp (шаговик) ---
+		if (Ticks) Ticks->clear();
+		if (Qvtp) Qvtp->clear();
 
-		// Получаем имя файла из TextBox
-		String^ fileNameInput = textBox1->Text;
-		if (String::IsNullOrWhiteSpace(fileNameInput)) {
-			MessageBox::Show("Введите имя файла!");
+		String^ fileNameTicks = textBox1->Text; // имя файла для шаговика берём из textBox1
+		if (String::IsNullOrWhiteSpace(fileNameTicks)) {
+			MessageBox::Show("Введите имя файла для шаговика!");
 			return;
 		}
 
-		// Папка data рядом с программой
-		std::string fileNameStr = msclr::interop::marshal_as<std::string>(fileNameInput);
-		std::string folder = "data";  // папка внутри директории программы
-		std::string fullPath = folder + "\\" + fileNameStr + ".csv";
+		std::string folder = "data";
+		std::string fileTicksStr = msclr::interop::marshal_as<std::string>(fileNameTicks);
+		std::string fullPathTicks = folder + "\\" + fileTicksStr + ".csv";
 
-		// Читаем исходный CSV
-		std::ifstream file(fullPath);
-		if (!file.is_open()) {
-			MessageBox::Show("Файл не найден: " + textBox1->Text + " в папке data");
+		std::ifstream fileTicks(fullPathTicks);
+		if (!fileTicks.is_open()) {
+			MessageBox::Show("Файл шаговика не найден: " + fileNameTicks + " (папка data)");
 			return;
 		}
 
 		std::string line;
-		while (std::getline(file, line)) {
+		while (std::getline(fileTicks, line)) {
 			if (line.empty()) continue;
 			std::stringstream ss(line);
 			double tick, qvtp;
@@ -998,33 +1083,91 @@ private: System::Void buttonLoadCSV_Click(System::Object^ sender, System::EventA
 				Qvtp->push_back(qvtp);
 			}
 		}
-		file.close();
+		fileTicks.close();
 
-		if (Ticks->empty() || Qvtp->empty()) {
-			MessageBox::Show("Файл пустой или некорректный!");
+		// --- Чтение второго файла: нагреватели и циклограмма ---
+		String^ fileNameHeater = textBoxCycleName->Text; // имя файла для нагревателей
+		if (String::IsNullOrWhiteSpace(fileNameHeater)) {
+			MessageBox::Show("Введите имя файла для нагревателей!");
 			return;
 		}
 
-		// Очищаем TextBox перед выводом
+		std::string fileHeaterStr = msclr::interop::marshal_as<std::string>(fileNameHeater);
+		std::string fullPathHeater = folder + "\\" + fileHeaterStr + ".csv";
+
+		// Инициализация векторов нагревателей
+		if (!HeaterAlphaTime) HeaterAlphaTime = new std::vector<double>();
+		if (!HeaterBetaTime) HeaterBetaTime = new std::vector<double>();
+		if (!HeaterAlphaState) HeaterAlphaState = new std::vector<bool>();
+		if (!HeaterBetaState) HeaterBetaState = new std::vector<bool>();
+
+		std::ifstream fileHeater(fullPathHeater);
+		if (!fileHeater.is_open()) {
+			MessageBox::Show("Файл нагревателей не найден: " + fileNameHeater + " (папка data)");
+			return;
+		}
+
+		std::vector<double> CycleTicks, CycleValues;
+
+		while (std::getline(fileHeater, line)) {
+			if (line.empty() || line.find_first_not_of(" \t") == std::string::npos) continue;
+
+			std::vector<std::string> tokens;
+			std::stringstream ss(line);
+			std::string token;
+			while (std::getline(ss, token, ';')) {
+				tokens.push_back(token);
+			}
+
+			// --- Парсим шаговик 2-го файла ---
+			if (tokens.size() >= 2 && !tokens[0].empty() && !tokens[1].empty()) {
+				double tick = std::stod(tokens[0]);
+				double value = std::stod(tokens[1]);
+				CycleTicks.push_back(tick);
+				CycleValues.push_back(value);
+			}
+
+			// --- Альфа ---
+			if (tokens.size() >= 4 && !tokens[2].empty() && !tokens[3].empty()) {
+				double alpha_time = std::stod(tokens[2]);
+				bool alpha_state = std::stoi(tokens[3]) != 0;
+				HeaterAlphaTime->push_back(alpha_time);
+				HeaterAlphaState->push_back(alpha_state);
+			}
+
+			// --- Бета ---
+			if (tokens.size() >= 6 && !tokens[4].empty() && !tokens[5].empty()) {
+				double beta_time = std::stod(tokens[4]);
+				bool beta_state = std::stoi(tokens[5]) != 0;
+				HeaterBetaTime->push_back(beta_time);
+				HeaterBetaState->push_back(beta_state);
+			}
+		}
+		fileHeater.close();
+
+		// --- Обновляем текстбоксы только для первого файла (Ticks/Qvtp) ---
 		textBox_Ticks->Clear();
 		textBox_Qvtp->Clear();
 
 		for (size_t i = 0; i < Ticks->size(); ++i) {
 			textBox_Ticks->AppendText(System::Convert::ToString((*Ticks)[i]));
 			textBox_Qvtp->AppendText(System::Convert::ToString((*Qvtp)[i]));
-
 			if (i != Ticks->size() - 1) {
 				textBox_Ticks->AppendText(";");
 				textBox_Qvtp->AppendText(";");
 			}
 		}
 
-		MessageBox::Show("Данные из CSV успешно загружены из папки data!");
+		MessageBox::Show("Данные успешно загружены из двух файлов!");
 	}
 	catch (Exception^ ex) {
 		MessageBox::Show("Ошибка: " + ex->Message);
 	}
 }
+
+
+
+
 
 
 
@@ -1257,7 +1400,7 @@ private: System::Void buttonStartCycleChart_Click(System::Object^ sender, System
 	maxTimeMs = (*MinutesVec).back();
 	// --- Проверяем текущую позицию ---
 	//int current_position = current_position;
-	try {
+	/*try {
 		std::ifstream in("position.txt");
 		if (in.is_open()) {
 			std::string line;
@@ -1269,12 +1412,13 @@ private: System::Void buttonStartCycleChart_Click(System::Object^ sender, System
 			}
 		}
 	}
-	catch (...) { current_position = 0; }
+	catch (...) { current_position = 0; }*/
 
 	// --- Вычисляем целевую позицию из кривой в момент 0 ---
 	double countPower0 = (*PowerVec)[0];
 	int targetTick0 = (int)((*powerToPosition)(countPower0));
 	targetTick0 = (((int)(targetTick0 + 24) / 25)) * 25;
+	targetTick0 -= 25;
 
 	// --- Крутим двигатель до начальной позиции ---
 	int minus = 8192;
@@ -1296,9 +1440,11 @@ private: System::Void buttonStartCycleChart_Click(System::Object^ sender, System
 		this->label9->Text = current_position.ToString();
 		if (current_position > targetTick0) {
 			rotate(0);      // шаг назад
+			current_position -= 25;
 		}
 		else if (current_position < targetTick0) {
 			rotate(minus);  // шаг вперёд
+			current_position += 25;
 		}
 
 		Sleep(2); // даём драйверу обработать шаг
@@ -1306,7 +1452,7 @@ private: System::Void buttonStartCycleChart_Click(System::Object^ sender, System
 
 	// --- Логируем старт ---
 	fix_power = (*positionToPower)(current_position); // мощность от времени
-	ENLOG("Cycle start detected (position aligned)");
+	ENLOG("Cyclogram started current position")(current_position);
 
 	// --- Создаём таймер (если ещё нет) ---
 	if (this->cycleTimer == nullptr) {
@@ -1316,8 +1462,46 @@ private: System::Void buttonStartCycleChart_Click(System::Object^ sender, System
 	}
 
 	// --- Запускаем таймер ---
-	this->startTime = DateTime::Now;
-	this->cycleTimer->Start();
+	DateTime targetTime;
+
+	if (!DateTime::TryParse(textBoxStartTime->Text, targetTime))
+	{
+		MessageBox::Show("Неверный формат времени");
+		return;
+	}
+
+	DateTime now = DateTime::Now;
+
+	plannedStartTime = DateTime(
+		now.Year,
+		now.Month,
+		now.Day,
+		targetTime.Hour,
+		targetTime.Minute,
+		targetTime.Second
+	);
+
+	if (plannedStartTime < now)
+	{
+		plannedStartTime = plannedStartTime.AddDays(1);
+	}
+
+	TimeSpan waitTime = plannedStartTime - now;
+
+	ENLOG(
+		"Scheduled start in "
+		+ msclr::interop::marshal_as<std::string>(
+			waitTime.TotalSeconds.ToString("F0"))
+		+ " sec"
+	);
+
+	startDelayTimer->Start();
+
+	MessageBox::Show(
+		"Циклограмма поставлена в очередь.\n"
+		"Запуск: " +
+		plannedStartTime.ToString()
+	);
 }
 
 
@@ -1354,30 +1538,32 @@ private: System::Void buttonStartCycleChart_Click(System::Object^ sender, System
 
 
 
-private: System::Void OnCycleTimerTick(System::Object^ sender, System::EventArgs^ e) {
+private: System::Void OnCycleTimerTick(System::Object^ sender, System::EventArgs^ e)
+{
 	TimeSpan elapsed = DateTime::Now - this->startTime;
 	double elapsedMillisec = elapsed.TotalMilliseconds;
 
 	if (elapsedMillisec >= maxTimeMs) {
 		this->cycleTimer->Stop();
-
-		// финальное сохранение
 		SavePositionToFile();
-
 		ENLOG("Cycle finished. Timer stopped.");
 		return;
 	}
 
+	// ВСЕГДА начинаем с чистого сообщения
+	int writeport_message = 0;
 	int minus = 8192;
+	bool needStep = false;
 
-	// --- вычисление мощности ---
+	// ================== ВЫЧИСЛЕНИЕ МОЩНОСТИ ==================
 	double countPower = 0.0;
+
 	if (MinutesVec->size() >= 2) {
 		if (elapsedMillisec < (*MinutesVec)[0]) {
 			countPower = (*PowerVec)[0];
 		}
 		else {
-			for (size_t i = 0; i < MinutesVec->size() - 1; i++) {
+			for (size_t i = 0; i < MinutesVec->size() - 1; ++i) {
 				double t1 = (*MinutesVec)[i];
 				double t2 = (*MinutesVec)[i + 1];
 				if (elapsedMillisec >= t1 && elapsedMillisec < t2) {
@@ -1388,17 +1574,17 @@ private: System::Void OnCycleTimerTick(System::Object^ sender, System::EventArgs
 					break;
 				}
 			}
-			if (elapsedMillisec >= (*MinutesVec).back()) {
-				countPower = (*PowerVec).back();
+			if (elapsedMillisec >= MinutesVec->back()) {
+				countPower = PowerVec->back();
 			}
 		}
 	}
 
-	// --- пересчёт мощности в тики ---
+	// ================== МОЩНОСТЬ → ТИКИ ==================
 	double countTick = 0.0;
-	if (powerToPosition != nullptr && PowerVec->size() > 0) {
-		countTick = (*powerToPosition)(countPower);
 
+	if (powerToPosition != nullptr && !PowerVec->empty()) {
+		countTick = (*powerToPosition)(countPower);
 		countTick = round(countTick / 25.0) * 25.0;
 		fix_power = (*positionToPower)(countTick);
 
@@ -1406,38 +1592,108 @@ private: System::Void OnCycleTimerTick(System::Object^ sender, System::EventArgs
 		if (countTick > 1450) countTick = 1450;
 	}
 
-	// --- управление шаговиком ---
+	// ================== ШАГОВИК (ТОЛЬКО РЕШЕНИЕ) ==================
 	if (current_position > countTick) {
-		rotate(0);    // шаг назад
-		Sleep(1);
-		 current_position -= 25;
+		writeport_message |= 4096;   // ENABLE
+		needStep = true;
+		current_position -= 25;
 	}
 	else if (current_position < countTick) {
-		rotate(minus); // шаг вперёд
-		Sleep(1);
+		writeport_message |= (4096 + minus); // ENABLE + DIR
+		needStep = true;
 		current_position += 25;
 	}
-	int cur_pos;
-	cur_pos = current_position;
 
-	// --- обновление интерфейса ---
+	// ================== НАГРЕВАТЕЛИ ==================
+	static bool currentAlpha = false;
+	static bool currentBeta = false;
+	static bool previousAlpha = false;
+	static bool previousBeta = false;
+	static bool firstTick = true;
+
+	for (size_t i = 0; i < HeaterAlphaTime->size(); ++i)
+		if (elapsedMillisec >= (*HeaterAlphaTime)[i])
+			currentAlpha = (*HeaterAlphaState)[i];
+
+	for (size_t i = 0; i < HeaterBetaTime->size(); ++i)
+		if (elapsedMillisec >= (*HeaterBetaTime)[i])
+			currentBeta = (*HeaterBetaState)[i];
+
+	if (firstTick) {
+		ENLOG(currentAlpha ? "ALPHA ON" : "ALPHA OFF");
+		ENLOG(currentBeta ? "BETA ON" : "BETA OFF");
+		previousAlpha = currentAlpha;
+		previousBeta = currentBeta;
+		firstTick = false;
+	}
+	else {
+		if (currentAlpha != previousAlpha) {
+			ENLOG(currentAlpha ? "ALPHA ON" : "ALPHA OFF");
+			previousAlpha = currentAlpha;
+		}
+		if (currentBeta != previousBeta) {
+			ENLOG(currentBeta ? "BETA ON" : "BETA OFF");
+			previousBeta = currentBeta;
+		}
+	}
+
+	if (currentAlpha) writeport_message |= 128;
+	if (currentBeta)  writeport_message |= 64;
+
+	// ================== UI ==================
 	this->label9->Text = current_position.ToString();
 	this->label7->Text = fix_power.ToString();
 	this->label11->Text = countPower.ToString("F2");
 	this->label13->Text = elapsedMillisec.ToString();
 
-	// --- лог ---
-	System::String^ msg = "Elapsed: " + elapsedMillisec.ToString() +
+	// ================== ЛОГ ==================
+	System::String^ msg =
+		"Elapsed: " + elapsedMillisec.ToString() +
 		" ms, Target pos: " + countTick.ToString() +
 		", Current pos: " + current_position.ToString() +
 		", Current P = " + fix_power.ToString() +
 		", Interpolated P = " + countPower.ToString("F2");
+
 	ENLOG(msclr::interop::marshal_as<std::string>(msg));
+
+	// ================== ПОРТ (STEP ИМПУЛЬС) ==================
+	if (needStep) {
+		startandwrite(writeport_message | 16384); // STEP = 1
+		Sleep(5);
+		startandwrite(writeport_message);          // STEP = 0
+	}
+	else {
+		startandwrite(writeport_message);          // без шага
+	}
 }
 
 
 
 
+
+	private: System::Void OnStartDelayTick(
+		System::Object^ sender,
+		System::EventArgs^ e)
+	{
+		if (DateTime::Now >= plannedStartTime)
+		{
+			startDelayTimer->Stop();
+
+			ENLOG("Scheduled start reached");
+
+			startTime = DateTime::Now;
+
+			cycleTimer->Start();
+		}
+	}
+
+	private: void StartCyclogram()
+	{
+		this->startTime = DateTime::Now;
+		this->cycleTimer->Start();
+
+		ENLOG("Cyclogram started");
+	}
 
 
 
@@ -1447,11 +1703,36 @@ private:
 	double fix_power = 0.0;   // для отображения
 	bool aligningToStart = false;
 	int targetTick0 = 0;
-
+	int writeport_message = 0;
 	//System::Windows::Forms::Timer^ cycleTimer = nullptr;
 	//DateTime startTime;
 
 private: System::Void label12_Click(System::Object^ sender, System::EventArgs^ e) {
+}
+private: System::Void button2_Click_3(System::Object^ sender, System::EventArgs^ e) {
+	int n = 0;
+	int test_writeport;
+	//test_writeport = Convert::ToInt32(this->textBox2->Text);
+	startandwrite(128 + 64);
+	ENLOG("ALPHA on");
+	
+	
+}
+private: System::Void button3_Click_2(System::Object^ sender, System::EventArgs^ e) {
+	startandwrite(0);
+	ENLOG("ALPHA OFF");
+}
+private: System::Void button5_Click(System::Object^ sender, System::EventArgs^ e) {
+	
+		startandwrite(64);
+		ENLOG("BETA ON");
+	
+}
+private: System::Void button6_Click(System::Object^ sender, System::EventArgs^ e) {
+	startandwrite(0);
+	ENLOG("BETA OFF");
+}
+private: System::Void textBox_Ticks_TextChanged(System::Object^ sender, System::EventArgs^ e) {
 }
 };
 }

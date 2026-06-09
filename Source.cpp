@@ -44,7 +44,7 @@ static void startandwrite(WORD Output) {
     //std::string logMsg = "Writing to port: 0x" + std::to_string(Output);
    // ENLOG(logMsg);
     res = LTR42_WritePort(&ltr42, Output);
-    ENLOG("Output")(Output);
+   // ENLOG("Output")(Output);
    /* if (res != 0)
         ENLOG("LTR42_WritePort failed with error code: ")(res);*/
 }
@@ -52,9 +52,9 @@ static void startandwrite(WORD Output) {
 
 // Универсальная функция вращения на 1 шаг
 static void rotate(int minus) {
-    startandwrite(0 + 4096 + minus + 16384);
+    startandwrite(0 + 4096 + minus + 16384 + 64);
     Sleep(10);
-    startandwrite(0 + 4096 + minus);
+    startandwrite(0 + 4096 + minus + 64);
 
     /*if (minus == 8192) {
         current_position += 25;

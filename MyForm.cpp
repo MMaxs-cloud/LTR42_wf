@@ -59,13 +59,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 LTR42wf::MyForm::MyForm(void)
 {
     InitializeComponent();
+    startDelayTimer = gcnew System::Windows::Forms::Timer();
+    startDelayTimer->Interval = 1000; // проверка раз в секунду
 
-    ENLOG("test1");
-    ENLOG("test2")(1);
-    int a = 10;
-    ENLOG("test3")(a)("русский")(a);
-
-
+    startDelayTimer->Tick +=
+        gcnew EventHandler(this, &MyForm::OnStartDelayTick);
     // Подписываем кнопку на обработчик
     this->buttonLoadCSV->Click += gcnew EventHandler(this, &MyForm::buttonLoadCSV_Click);
 
