@@ -1,154 +1,380 @@
-#include "MyForm.h"
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <msclr/marshal_cppstd.h>
-#include "LinearInterpolation.h"
-
-#include <mutex>
+п»ї#include "MyForm.h"
+#include "CycleData.h"
+#include "Device.h"
 #include "header.h"
-#include <functional>
+#include <Windows.h>
+#include <cmath>
+#include <mutex>
 #include "utils/enlog_to_file.h"
 
+using namespace LTR42wf;
+using namespace System::Globalization;
 
-using namespace System;
-using namespace System::Windows::Forms;
-using namespace msclr::interop;
+namespace {
+    String^ ResolveDataDirectory()
+    {
+        auto localData = IO::Path::GetFullPath(L"data");
+        if (IO::Directory::Exists(localData)) return localData;
 
-// глобальные переменные
-RammusLib::Log::CAppFileLog g_Log;
-std::mutex g_LogMutex;
-rt::Logger g_Logger;
+        auto executableDirectory = gcnew IO::DirectoryInfo(Application::StartupPath);
+        auto adjacentData = IO::Path::Combine(executableDirectory->FullName, L"data");
+        if (IO::Directory::Exists(adjacentData)) return adjacentData;
 
-void toLog(std::string const& msg, rt::LogLevel level) {
-	// запись в лог файл, безопасно для многопоточности
-    g_Log.SendMessageToLog(level, msg.c_str());
+        for (auto parent = executableDirectory->Parent; parent != nullptr; parent = parent->Parent) {
+            if (IO::File::Exists(IO::Path::Combine(parent->FullName, L"LTR42_wf.vcxproj"))) {
+                return IO::Path::Combine(parent->FullName, L"data");
+            }
+        }
+
+        return localData;
+    }
+
+    void WriteLog(const std::string& message, rt::LogLevel level)
+    {
+        static std::mutex mutex;
+        std::lock_guard<std::mutex> lock(mutex);
+        try {
+            static RammusLib::Log::CAppFileLog log;
+            log.SendMessageToLog(level, message);
+        }
+        catch (const std::exception&) {
+            OutputDebugStringA(message.c_str());
+        }
+    }
 }
 
-void rt::RTEngineLogger::write_to_log(std::string const& str) {
-    // разруливаем мультипоточность
-    std::lock_guard<std::mutex> lock(g_LogMutex);
-    g_Logger.info(str);
+rt::Logger::Logger()
+{
+    init(WriteLog);
 }
 
-rt::Logger::Logger() {
-    // инициализируем логгер, который будем использовать в макросе ENLOG
-    init(toLog);
+void rt::RTEngineLogger::write_to_log(const std::string& message)
+{
+    static rt::Logger logger;
+    logger.info(message);
 }
 
-void LogEvent(const std::string& event) {
-    RammusLib::Log::CAppFileLog logger;
-    logger.SendMessageToLog(0, event);
-}
-
-
-
-[STAThreadAttribute] // обязательно для OpenFileDialog
+[STAThreadAttribute]
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
     Application::EnableVisualStyles();
     Application::SetCompatibleTextRenderingDefault(false);
-
-    LTR42wf::MyForm^ form = gcnew LTR42wf::MyForm();
-    Application::Run(form);
-
+    Application::Run(gcnew MyForm());
     return 0;
 }
 
-// ------------------- Конструктор и деструктор -------------------
-LTR42wf::MyForm::MyForm(void)
+MyForm::MyForm()
 {
+    dataDirectory = ResolveDataDirectory();
     InitializeComponent();
-    startDelayTimer = gcnew System::Windows::Forms::Timer();
-    startDelayTimer->Interval = 1000; // проверка раз в секунду
 
-    startDelayTimer->Tick +=
-        gcnew EventHandler(this, &MyForm::OnStartDelayTick);
-    // Подписываем кнопку на обработчик
-    this->buttonLoadCSV->Click += gcnew EventHandler(this, &MyForm::buttonLoadCSV_Click);
+    elapsed = gcnew Diagnostics::Stopwatch();
+    motionTimer = gcnew Timer();
+    motionTimer->Interval = 15;
+    motionTimer->Tick += gcnew EventHandler(this, &MyForm::MotionTick);
+    scheduleTimer = gcnew Timer();
+    scheduleTimer->Interval = 1000;
+    scheduleTimer->Tick += gcnew EventHandler(this, &MyForm::ScheduleTick);
+    cycleTimer = gcnew Timer();
+    cycleTimer->Interval = 300;
+    cycleTimer->Tick += gcnew EventHandler(this, &MyForm::CycleTick);
 
-    powerToPosition = new LinearCalibration();
-    positionToPower = new LinearCalibration();
-    Ticks = new std::vector<double>();
-    Qvtp = new std::vector<double>();
-    MinutesVec = new std::vector<double>();
-    PowerVec = new std::vector<double>();
-
-    cycleCurve = new LinearCalibration();
+    data = new RunData();
+    UpdateControls();
+    ENLOG("Form loaded");
 }
 
-LTR42wf::MyForm::~MyForm()
+MyForm::~MyForm()
 {
-    if (components) delete components;
-    if (powerToPosition) delete powerToPosition;
+    delete cycleTimer;
+    delete scheduleTimer;
+    delete motionTimer;
+    delete data;
+    data = nullptr;
+    ltr42::Close();
 }
 
-// ------------------- Обработчик кнопки -------------------
-/*void LTR42wf::MyForm::buttonLoadCSV_Click(System::Object^ sender, System::EventArgs^ e)
+void MyForm::OnFormClosing(FormClosingEventArgs^ e)
 {
-    try
-    {
-        String^ fileNameInput = textBox1->Text;
-        if (String::IsNullOrWhiteSpace(fileNameInput)) {
-            MessageBox::Show("Введите имя файла!");
-            return;
-        }
+    Form::OnFormClosing(e);
+    if (e->Cancel) return;
+    StopTimers();
+    SavePosition();
+    ltr42::Close();
+    ENLOG("Form closed");
+}
 
-        String^ folder = "C:\\Users\\maxim\\source\\repos\\LTR42_wf";
-        String^ fullPath = System::IO::Path::Combine(folder, fileNameInput + ".csv");
-
-        if (!System::IO::File::Exists(fullPath)) {
-            MessageBox::Show("Файл не найден: " + fullPath);
-            return;
-        }
-
-        std::string path = marshal_as<std::string>(fullPath);
-
-        std::ifstream file(path);
-        if (!file.is_open()) {
-            MessageBox::Show("Не удалось открыть файл: " + fullPath);
-            return;
-        }
-
-        std::vector<double> Ticks, Qvtp;
-        std::string line;
-        while (std::getline(file, line)) {
-            if (line.empty()) continue;
-            std::stringstream ss(line);
-            double tick, qvtp;
-            char sep;
-            if (ss >> tick >> sep >> qvtp && sep == ';') {
-                Ticks.push_back(tick);
-                Qvtp.push_back(qvtp);
-            }
-        }
-        file.close();
-
-        if (Ticks.empty() || Qvtp.empty()) {
-            MessageBox::Show("Файл пустой или некорректный!");
-            return;
-        }
-
-        // Очистка TextBox
-        textBox_Ticks->Clear();
-        textBox_Qvtp->Clear();
-
-        // Заполнение TextBox значениями через ;
-        for (size_t i = 0; i < Ticks.size(); ++i) {
-            textBox_Ticks->AppendText(Ticks[i].ToString());
-            textBox_Qvtp->AppendText(Qvtp[i].ToString());
-            if (i != Ticks.size() - 1) {
-                textBox_Ticks->AppendText(";");
-                textBox_Qvtp->AppendText(";");
-            }
-        }
-
-        // Построение кривой
-        powerToPosition->SetPoints(Ticks, Qvtp);
-
-        MessageBox::Show("Файл успешно загружен! Количество строк: " + Ticks.size());
+void MyForm::UpdateControls()
+{
+    bool idle = operation == Operation::Idle;
+    bool manualEnabled = connected && idle;
+    connectButton->Enabled = !connected && idle;
+    moveButton->Enabled = manualEnabled;
+    zeroButton->Enabled = manualEnabled;
+    heaterButtons->Enabled = manualEnabled;
+    const bool canCancel = operation == Operation::Aligning || operation == Operation::Waiting;
+    startButton->Enabled = manualEnabled || canCancel;
+    startButton->Text = canCancel ? L"РћС‚РјРµРЅРёС‚СЊ Р·Р°РїСѓСЃРє" : L"Р—Р°РїР»Р°РЅРёСЂРѕРІР°С‚СЊ";
+    calibrationCard->Enabled = idle;
+    for each (Control^ control in cycleCard->Controls) {
+        if (control != startButton && dynamic_cast<Label^>(control) == nullptr) control->Enabled = idle;
     }
-    catch (Exception^ ex) {
-        MessageBox::Show("Ошибка: " + ex->Message);
+    connectionLabel->Text = connected ? L"РџРѕРґРєР»СЋС‡С‘РЅ" : L"РќРµС‚ РїРѕРґРєР»СЋС‡РµРЅРёСЏ";
+    connectionLabel->ForeColor = connected ? Color::FromArgb(167, 243, 208) : Color::FromArgb(203, 213, 225);
+}
+
+void MyForm::ShowStatus(String^ message, bool error)
+{
+    statusLabel->Text = message;
+    statusLabel->ForeColor = error ? Color::FromArgb(153, 27, 27) : Color::FromArgb(30, 64, 88);
+}
+
+void MyForm::UpdatePosition()
+{
+    positionValue->Text = position.ToString() + L" С‚РёРєРѕРІ";
+    cyclePositionValue->Text = position.ToString();
+}
+
+bool MyForm::AcceptDeviceResult(int code)
+{
+    if (code == 0) return true;
+
+    StopTimers();
+    ltr42::Close();
+    connected = false;
+    operation = Operation::Idle;
+    UpdateControls();
+    ShowStatus(String::Format(L"РћС€РёР±РєР° LTR42, РєРѕРґ {0}. РџСЂРѕРІРµСЂСЊС‚Рµ РїРѕРґРєР»СЋС‡РµРЅРёРµ Рё РїРѕР»РѕР¶РµРЅРёРµ РїСЂРёРІРѕРґР°.", code), true);
+    ENLOG("LTR42 error: ")(code);
+    return false;
+}
+
+void MyForm::Connect(Object^, EventArgs^)
+{
+    if (!AcceptDeviceResult(ltr42::Connect())) return;
+    connected = true;
+    UpdateControls();
+    ShowStatus(L"LTR42 РїРѕРґРєР»СЋС‡С‘РЅ. РљР°РЅР°Р» В«Р‘РµС‚Р°В» РІРєР»СЋС‡С‘РЅ.", false);
+    ENLOG("LTR42 connected; Beta output ON");
+}
+
+void MyForm::Move(Object^, EventArgs^)
+{
+    int target;
+    int seconds;
+    if (!Int32::TryParse(targetPositionInput->Text, target) || target < 0 ||
+        target > ltr42::manualPositionLimit || target % ltr42::positionStep != 0) {
+        ShowStatus(L"РџРѕР·РёС†РёСЏ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РѕС‚ 0 РґРѕ 1425 С‚РёРєРѕРІ СЃ С€Р°РіРѕРј 25.", true);
+        return;
     }
-}*/
+    if (!Int32::TryParse(durationInput->Text, seconds) || seconds < 0) {
+        ShowStatus(L"РЈРєР°Р¶РёС‚Рµ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РІ С†РµР»С‹С… РЅРµРѕС‚СЂРёС†Р°С‚РµР»СЊРЅС‹С… СЃРµРєСѓРЅРґР°С….", true);
+        return;
+    }
+
+    ShowStatus(L"РџРµСЂРµРјРµС‰РµРЅРёРµ РїСЂРёРІРѕРґР°вЂ¦", false);
+    BeginMotion(target, seconds * 1000.0, Operation::Manual);
+}
+
+void MyForm::MoveToZero(Object^, EventArgs^)
+{
+    if (!AcceptDeviceResult(ltr42::MoveToZero())) return;
+    position = 0;
+    positionChanged = true;
+    UpdatePosition();
+    ShowStatus(L"РљРѕРјР°РЅРґР° РІРѕР·РІСЂР°С‚Р° РІ РЅРѕР»СЊ РІС‹РїРѕР»РЅРµРЅР°.", false);
+    ENLOG("Position reset to zero");
+}
+
+void MyForm::SetHeaterOutput(Object^ sender, EventArgs^)
+{
+    auto button = safe_cast<Button^>(sender);
+    int output = safe_cast<int>(button->Tag);
+    if (!AcceptDeviceResult(ltr42::Write(static_cast<unsigned short>(output)))) return;
+    ShowStatus(button->Text + L". РљРѕРјР°РЅРґР° РІС‹РїРѕР»РЅРµРЅР°.", false);
+    ENLOG("Manual heater output: ")(output);
+}
+
+void MyForm::StartCycle(Object^, EventArgs^)
+{
+    if (operation == Operation::Aligning || operation == Operation::Waiting) {
+        StopTimers();
+        operation = Operation::Idle;
+        UpdateControls();
+        ShowStatus(L"Р—Р°РїСѓСЃРє С†РёРєР»РѕРіСЂР°РјРјС‹ РѕС‚РјРµРЅС‘РЅ.", false);
+        return;
+    }
+
+    if (data->calibration.x.empty()) {
+        ShowStatus(L"РЎРЅР°С‡Р°Р»Р° Р·Р°РіСЂСѓР·РёС‚Рµ РєР°Р»РёР±СЂРѕРІРєСѓ.", true);
+        return;
+    }
+
+    DateTime requestedTime;
+    auto formats = gcnew array<String^>{ L"H:mm", L"H:mm:ss" };
+    if (!DateTime::TryParseExact(startTimeInput->Text->Trim(), formats, CultureInfo::InvariantCulture,
+                                DateTimeStyles::None, requestedTime)) {
+        ShowStatus(L"Р’РІРµРґРёС‚Рµ РІСЂРµРјСЏ Р·Р°РїСѓСЃРєР° РІ С„РѕСЂРјР°С‚Рµ Р§Р§:РњРњ РёР»Рё Р§Р§:РњРњ:РЎРЎ.", true);
+        return;
+    }
+
+    try {
+        ReadPowerInputs();
+    }
+    catch (FormatException^ ex) {
+        ShowStatus(ex->Message, true);
+        return;
+    }
+
+    DateTime now = DateTime::Now;
+    scheduledStart = now.Date + requestedTime.TimeOfDay;
+    if (scheduledStart < now) scheduledStart = scheduledStart.AddDays(1);
+
+    // Keep the one-step offset used for the original initial approach.
+    double initialPosition = data->PositionAtPower(data->cycle.power.y.front());
+    if (!std::isfinite(initialPosition)) {
+        ShowStatus(L"РџРѕ РєР°Р»РёР±СЂРѕРІРєРµ РЅРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃСЃС‡РёС‚Р°С‚СЊ РЅР°С‡Р°Р»СЊРЅСѓСЋ РїРѕР·РёС†РёСЋ.", true);
+        return;
+    }
+    initialPosition = Math::Max(0.0, Math::Min(initialPosition, ltr42::cyclePositionLimit + 25.0));
+    int initialTarget = (static_cast<int>(initialPosition) + 24) / ltr42::positionStep * ltr42::positionStep;
+    initialTarget = Math::Max(0, initialTarget - ltr42::positionStep);
+
+    measuredPowerValue->Text = L"вЂ”";
+    targetPowerValue->Text = L"вЂ”";
+    elapsedValue->Text = L"вЂ”";
+    ShowStatus(L"РџРµСЂРµРјРµС‰РµРЅРёРµ Рє РЅР°С‡Р°Р»СЊРЅРѕР№ РїРѕР·РёС†РёРё С†РёРєР»РѕРіСЂР°РјРјС‹вЂ¦", false);
+    BeginMotion(initialTarget, 0, Operation::Aligning);
+}
+
+void MyForm::BeginMotion(int target, double durationMs, Operation nextOperation)
+{
+    operation = nextOperation;
+    motionStart = position;
+    motionTarget = target;
+    motionDurationMs = durationMs;
+    elapsed->Restart();
+    UpdateControls();
+    motionTimer->Start();
+}
+
+void MyForm::MotionTick(Object^, EventArgs^)
+{
+    if (position != motionTarget) {
+        int nextPosition = position + (motionTarget > position ? ltr42::positionStep : -ltr42::positionStep);
+        if (motionDurationMs > 0) {
+            double progress = std::abs(nextPosition - motionStart) / static_cast<double>(std::abs(motionTarget - motionStart));
+            if (elapsed->Elapsed.TotalMilliseconds < motionDurationMs * progress) return;
+        }
+
+        unsigned short output = ltr42::Enable | ltr42::Beta;
+        if (nextPosition > position) output |= ltr42::Forward;
+        if (!AcceptDeviceResult(ltr42::Step(output, 10))) return;
+        position = nextPosition;
+        positionChanged = true;
+        UpdatePosition();
+    }
+
+    if (position != motionTarget) return;
+    motionTimer->Stop();
+    if (operation == Operation::Aligning) {
+        QueueCycle();
+        return;
+    }
+
+    operation = Operation::Idle;
+    UpdateControls();
+    ShowStatus(L"РџРµСЂРµРјРµС‰РµРЅРёРµ Р·Р°РІРµСЂС€РµРЅРѕ.", false);
+}
+
+void MyForm::QueueCycle()
+{
+    operation = Operation::Waiting;
+    ShowStatus(L"Р—Р°РїСѓСЃРє Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅ РЅР° " + scheduledStart.ToString(L"dd.MM.yyyy HH:mm:ss") + L".", false);
+    scheduleTimer->Start();
+    ScheduleTick(nullptr, EventArgs::Empty);
+}
+
+void MyForm::ScheduleTick(Object^, EventArgs^)
+{
+    if (DateTime::Now < scheduledStart) return;
+    scheduleTimer->Stop();
+    operation = Operation::Running;
+    elapsed->Restart();
+    cycleTimer->Start();
+    ShowStatus(L"Р¦РёРєР»РѕРіСЂР°РјРјР° РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ.", false);
+    ENLOG("Cyclogram started");
+}
+
+void MyForm::CycleTick(Object^, EventArgs^)
+{
+    double elapsedMs = elapsed->Elapsed.TotalMilliseconds;
+    if (elapsedMs >= data->cycle.Duration()) {
+        StopTimers();
+        SavePosition();
+        operation = Operation::Idle;
+        UpdateControls();
+        ShowStatus(L"Р¦РёРєР»РѕРіСЂР°РјРјР° Р·Р°РІРµСЂС€РµРЅР°.", false);
+        ENLOG("Cyclogram finished");
+        return;
+    }
+
+    double targetPower = data->cycle.PowerAt(elapsedMs);
+    double target = data->PositionAtPower(targetPower);
+    if (!std::isfinite(target)) {
+        StopTimers();
+        operation = Operation::Idle;
+        UpdateControls();
+        ShowStatus(L"Р¦РёРєР»РѕРіСЂР°РјРјР° РѕСЃС‚Р°РЅРѕРІР»РµРЅР°. РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃСЃС‡РёС‚Р°С‚СЊ РїРѕР·РёС†РёСЋ.", true);
+        return;
+    }
+    target = Math::Max(0.0, Math::Min(target, static_cast<double>(ltr42::cyclePositionLimit)));
+    int targetPosition = static_cast<int>(std::round(target / ltr42::positionStep)) * ltr42::positionStep;
+
+    unsigned short output = 0;
+    if (CycleData::HeaterAt(data->cycle.alpha, elapsedMs)) output |= ltr42::Alpha;
+    if (CycleData::HeaterAt(data->cycle.beta, elapsedMs)) output |= ltr42::Beta;
+
+    if (targetPosition == position) {
+        if (!AcceptDeviceResult(ltr42::Write(output))) return;
+    }
+    else {
+        output |= ltr42::Enable;
+        int delta = targetPosition > position ? ltr42::positionStep : -ltr42::positionStep;
+        if (delta > 0) output |= ltr42::Forward;
+        if (!AcceptDeviceResult(ltr42::Step(output, 5))) return;
+        position += delta;
+        positionChanged = true;
+        UpdatePosition();
+    }
+
+    double power = data->PowerAtPosition(position);
+    measuredPowerValue->Text = power.ToString(L"F2");
+    targetPowerValue->Text = targetPower.ToString(L"F2");
+    elapsedValue->Text = elapsedMs.ToString(L"F0");
+    ENLOG("Elapsed ms: ")(elapsedMs)(" target: ")(targetPosition)(" position: ")(static_cast<int>(position))
+        (" power: ")(power)(" target power: ")(targetPower)(" output: ")(output);
+}
+
+void MyForm::StopTimers()
+{
+    motionTimer->Stop();
+    scheduleTimer->Stop();
+    cycleTimer->Stop();
+}
+
+void MyForm::SavePosition()
+{
+    if (!positionChanged) return;
+    try {
+        auto path = IO::Path::Combine(IO::Path::GetDirectoryName(dataDirectory), L"position.txt");
+        IO::File::WriteAllText(path, position.ToString(CultureInfo::InvariantCulture) + Environment::NewLine);
+        positionChanged = false;
+    }
+    catch (IO::IOException^) {
+        ENLOG("Could not save position.txt");
+    }
+    catch (UnauthorizedAccessException^) {
+        ENLOG("Could not write position.txt");
+    }
+}

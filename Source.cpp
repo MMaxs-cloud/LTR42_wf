@@ -1,98 +1,61 @@
-#include "ltr11api.h"
-#include "ltrapi.h"
-#include "ltr42api.h"
-#include "Logger.h"
-#include <fstream>
-#include <string>
-#include "header.h"
-using namespace std;
-static TLTR42 ltr42;
+п»ї#include "Device.h"
+#include <ltr42api.h>
 
-// Глобальная переменная для хранения текущего положения
-static int current_position = 0;
-
-static int Startltr42() {
-    int res;
-    const CHAR crate = 0;
-    ENLOG("Calling Startltr42: Initializing LTR42 device");
-    res = LTR42_Init(&ltr42);
-    if (res == 0) {
-        ENLOG("LTR42_Init succeeded. Opening device...");
-        res = LTR42_Open(&ltr42, (int)0, (WORD)0, &crate, (INT)4);
-        if (res == 0) {
-            ltr42.Marks.StartMark_Mode = 0;
-            ENLOG("Configuring LTR42 device...");
-            res = LTR42_Config(&ltr42);
-            if (res == 0)
-                ENLOG("LTR42 configuration succeeded.");
-            else
-                ENLOG("LTR42_Config failed with error code: ")(res);
-        }
-        else {
-            ENLOG("LTR42_Open failed with error code: ")(res);
-        }
-    }
-    else {
-        ENLOG("LTR42_Init failed with error code: ")(res);
-    }
-
-    return res;
+namespace {
+    TLTR42 device{};
+    bool connected = false;
 }
 
-static void startandwrite(WORD Output) {
-    int res;
-    //std::string logMsg = "Writing to port: 0x" + std::to_string(Output);
-   // ENLOG(logMsg);
-    res = LTR42_WritePort(&ltr42, Output);
-   // ENLOG("Output")(Output);
-   /* if (res != 0)
-        ENLOG("LTR42_WritePort failed with error code: ")(res);*/
-}
+int ltr42::Connect()
+{
+    if (connected) return 0;
 
+    int result = LTR42_Init(&device);
+    if (result != 0) return result;
 
-// Универсальная функция вращения на 1 шаг
-static void rotate(int minus) {
-    startandwrite(0 + 4096 + minus + 16384 + 64);
-    Sleep(10);
-    startandwrite(0 + 4096 + minus + 64);
+    result = LTR42_Open(&device, 0, 0, "", 4);
+    if (result != 0) return result;
 
-    /*if (minus == 8192) {
-        current_position += 25;
+    device.Marks.StartMark_Mode = 0;
+    result = LTR42_Config(&device);
+    if (result != 0) {
+        LTR42_Close(&device);
+        return result;
     }
-    else if (minus == 0) {
-        current_position -= 25;
-    }*/
-    //ENLOG("Rotation completed. Current position: ")(current_position);
+
+    connected = true;
+    result = Write(Beta);
+    if (result != 0) Close();
+    return result;
 }
 
-
-static void stop_rotate() {
-    ENLOG("Stopping rotation...");
-    startandwrite(32768);
+void ltr42::Close()
+{
+    if (!connected) return;
+    LTR42_Close(&device);
+    connected = false;
 }
 
-// Возврат в ноль
-// Возврат в ноль
-static void rotate_to_zero() {
-    ENLOG("Starting rotation to zero...");
+int ltr42::Write(unsigned short output)
+{
+    return LTR42_WritePort(&device, output);
+}
 
-    // Цикл для перехода в 0
-    for (int i = 0; i < 100; i++) {
-        startandwrite(0 + 4096 + 16384);
-        startandwrite(0 + 4096);
+int ltr42::Step(unsigned short output, unsigned long pulseMs)
+{
+    int pulseResult = Write(output | Pulse);
+    if (pulseResult == 0 && pulseMs != 0) Sleep(pulseMs);
+    int resetResult = Write(output);
+    return pulseResult != 0 ? pulseResult : resetResult;
+}
+
+int ltr42::MoveToZero()
+{
+    int result = 0;
+    for (int i = 0; i < 100 && result == 0; ++i) {
+        result = Step(Enable, 0);
     }
-    //stop_rotate;
-    startandwrite(32768);
 
-    // Сбрасываем глобальное положение
-    current_position = 0;
-
-    // Записываем новое значение в файл
-    /*std::ofstream out("position.txt", std::ios::app);
-    if (out.is_open()) {
-        ENLOG("Writing to file: position.txt");
-        out << current_position << "\n"; // Теперь пишем глобальное значение
-    }*/
-
-    ENLOG("Position reset to 0 completed");
+    int finishResult = Write(ZeroComplete);
+    return result != 0 ? result : finishResult;
 }

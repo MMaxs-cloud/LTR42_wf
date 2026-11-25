@@ -20,23 +20,3 @@ inline double InterpolateLinearly(const std::vector<double>& inputs,
     const auto anchor = match == inputs.end() ? right : left;
     return outputs[anchor] + (input - inputs[anchor]) * slope;
 }
-
-// Store calibration points for the historical form's bidirectional lookup.
-class LinearCalibration {
-public:
-    void SetPoints(const std::vector<double>& inputs, const std::vector<double>& outputs)
-    {
-        inputs_ = inputs;
-        outputs_ = outputs;
-    }
-
-    double operator()(double input) const
-    {
-        if (inputs_.size() < 2) return 0.0;
-        return InterpolateLinearly(inputs_, outputs_, input);
-    }
-
-private:
-    std::vector<double> inputs_;
-    std::vector<double> outputs_;
-};
